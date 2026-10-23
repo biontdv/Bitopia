@@ -1,0 +1,27 @@
+# Go
+/daemon/bin/
+*.test
+*.out
+coverage.*
+
+# Go build/data artifacts
+/daemon/data/
+/data/
+
+# Node / Vite (production frontend)
+node_modules/
+dist/
+.vite/
+*.tsbuildinfo
+
+# Fallback UI compiled output is embedded; keep a committed placeholder only.
+# (daemon/web/dist is tracked with a placeholder; real build output is ignored
+#  except the placeholder index.html.)
+
+# Editor / OS junk
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+*.log
