@@ -33,7 +33,7 @@ export default function App() {
     <WsProvider value={wsRef.current}>
       <div className="app">
         <header className="topbar">
-          <span className="brand">Agentic Virtual Office</span>
+          <span className="brand">Bitopia</span>
           <span className="brand-sub">your friendly AI team at work</span>
         </header>
 

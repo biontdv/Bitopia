@@ -1,9 +1,9 @@
 {
-  "name": "agentic-office-frontend",
+  "name": "bitopia-frontend",
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Production React + TypeScript + Vite frontend for the Agentic Virtual Office (Pixi.js v8 scene, xterm.js terminal, Monaco diff, Zustand store fed by the WebSocket outside React render).",
+  "description": "Production React + TypeScript + Vite frontend for Bitopia (Pixi.js v8 scene, xterm.js terminal, Monaco diff, Zustand store fed by the WebSocket outside React render).",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",

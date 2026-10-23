@@ -65,7 +65,7 @@ func TestStaticIndex(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("index status = %d", resp.StatusCode)
 	}
-	if !strings.Contains(string(body), "Agentic Virtual Office") {
+	if !strings.Contains(string(body), "Bitopia") {
 		t.Fatalf("index did not contain expected content")
 	}
 }

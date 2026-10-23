@@ -1,4 +1,4 @@
-# Makefile for the Agentic Virtual Office daemon (officed).
+# Makefile for the Bitopia daemon (officed).
 # The daemon uses only the Go standard library; no `go get` is required or used.
 
 .PHONY: all build test vet run clean verify

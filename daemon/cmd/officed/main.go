@@ -1,4 +1,4 @@
-// Command officed is the Agentic Virtual Office host daemon. It serves the
+// Command officed is the Bitopia host daemon. It serves the
 // browser UI over HTTP, exposes a WebSocket endpoint for live messaging,
 // supervises agent CLIs (or the built-in MOCK agent), and owns the office
 // customization store. It uses only the Go standard library.

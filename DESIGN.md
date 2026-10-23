@@ -1,6 +1,6 @@
 # DESIGN
 
-Architecture and contracts for the Agentic Virtual Office. This document is the
+Architecture and contracts for Bitopia. This document is the
 authoritative contract that the daemon and both frontends implement against:
 the WebSocket message protocol, the agent lifecycle state machine, the agent
 adapter interface, and the office customization data model. It also documents

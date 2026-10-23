@@ -1,6 +1,6 @@
 # SPEC
 
-User-facing feature specification for the Agentic Virtual Office. This mirrors
+User-facing feature specification for Bitopia. This mirrors
 the reference project (`HarnessMD/munder-difflin`) in feature spirit only, and
 adds the explicit requests from the project brief. Each feature notes whether it
 ships in the first vertical slice or is designed-only for a later slice.

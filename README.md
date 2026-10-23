@@ -1,4 +1,4 @@
-# Agentic Virtual Office
+# Bitopia
 
 A browser-based "virtual office" where AI coding agents (Claude Code, Codex,
 Antigravity, or a built-in MOCK agent) appear as little avatars working in a
