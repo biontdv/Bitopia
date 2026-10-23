@@ -15,8 +15,10 @@ dist/
 *.tsbuildinfo
 
 # Fallback UI compiled output is embedded; keep a committed placeholder only.
-# (daemon/web/dist is tracked with a placeholder; real build output is ignored
-#  except the placeholder index.html.)
+# daemon/web/dist holds a tracked placeholder index.html so the //go:embed
+# builds offline; real build output (other files) is ignored.
+daemon/web/dist/*
+!daemon/web/dist/index.html
 
 # Editor / OS junk
 .DS_Store
