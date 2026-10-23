@@ -107,6 +107,67 @@ checkout runs with just steps 2 and 3 above.
 └── frontend-fallback/     # dependency-free vanilla-TS demo UI (offline demo)
 ```
 
+## Production frontend (React + Pixi + xterm + Monaco)
+
+The full, friendly UI lives in `frontend/` and uses the requested stack: React +
+TypeScript + Vite, Pixi.js v8 for the 2D office scene, xterm.js with the WebGL
+addon for the terminal, Monaco Editor for the code diff, and a vanilla Zustand
+store that the WebSocket layer writes to outside React's render cycle (so
+high-frequency agent output does not stutter the scene).
+
+It is the same WebSocket protocol as the fallback UI (see `DESIGN.md` section
+2), so it is a drop-in replacement for the embedded UI once built.
+
+### Requires a networked machine
+
+`frontend/` needs third-party packages, so `npm install` must run on a machine
+with network access. It will NOT install inside the offline build sandbox, where
+the package registry is blocked; that is why the embedded demo UI is the
+dependency-free `frontend-fallback/`. Install Node 20 or newer, then:
+
+```sh
+cd frontend
+npm install
+```
+
+### Dev mode
+
+```sh
+# In one terminal, run the daemon (serves /ws and /api on :8080).
+cd daemon && go build -o bin/officed ./cmd/officed && ./bin/officed
+
+# In another terminal, run the Vite dev server.
+cd frontend && npm run dev
+```
+
+`npm run dev` starts Vite on http://localhost:5173 and proxies `/ws` and `/api`
+to the daemon on `http://localhost:8080`, so the dev UI talks to a locally
+running `officed` with live reload.
+
+Other scripts: `npm run test` (vitest unit tests, including the WebSocket
+protocol parser/serializer tests), `npm run typecheck` (`tsc --noEmit`), and
+`npm run preview` (preview a production build).
+
+### Build and embed into the daemon
+
+To ship the production UI inside the single `officed` binary:
+
+```sh
+# 1. Build the React app (outputs frontend/dist).
+cd frontend && npm run build
+
+# 2. Replace the embedded UI with the production build.
+rm -rf ../daemon/web/dist
+cp -r dist ../daemon/web/dist
+
+# 3. Rebuild the daemon so //go:embed picks up the new files.
+cd ../daemon && go build -o bin/officed ./cmd/officed
+```
+
+The daemon then serves the production UI at http://localhost:8080 exactly like
+it serves the fallback UI. Swap back to the fallback at any time by rebuilding
+the fallback UI into `daemon/web/dist` (see "Rebuilding the fallback UI" above).
+
 ## Why two frontends?
 
 The build sandbox blocks all external package registries and CDNs. The

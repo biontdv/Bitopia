@@ -1,0 +1,31 @@
+{
+  "name": "agentic-office-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Production React + TypeScript + Vite frontend for the Agentic Virtual Office (Pixi.js v8 scene, xterm.js terminal, Monaco diff, Zustand store fed by the WebSocket outside React render).",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "zustand": "4.5.5",
+    "pixi.js": "8.4.1",
+    "@xterm/xterm": "5.5.0",
+    "@xterm/addon-webgl": "0.18.0",
+    "monaco-editor": "0.52.0"
+  },
+  "devDependencies": {
+    "vite": "5.4.8",
+    "@vitejs/plugin-react": "4.3.2",
+    "typescript": "5.6.2",
+    "vitest": "2.1.2",
+    "@types/react": "18.3.11",
+    "@types/react-dom": "18.3.0"
+  }
+}
