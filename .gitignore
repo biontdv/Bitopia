@@ -14,11 +14,20 @@ dist/
 .vite/
 *.tsbuildinfo
 
-# Fallback UI compiled output is embedded; keep a committed placeholder only.
-# daemon/web/dist holds a tracked placeholder index.html so the //go:embed
-# builds offline; real build output (other files) is ignored.
-daemon/web/dist/*
-!daemon/web/dist/index.html
+# ...but the embedded fallback UI output under daemon/web/dist IS committed so
+# the daemon builds and runs offline with no build step (see note below).
+!daemon/web/dist/
+!daemon/web/dist/**
+
+# Fallback UI compiled output is embedded via //go:embed. We commit the built
+# fallback UI (the dependency-free vanilla-TS app compiled by tsc, plus its
+# index.html and styles.css) so `go build` + run works offline from a fresh
+# checkout with no build step. Rebuild it any time with
+# `frontend-fallback/build.sh`. The production React/Pixi build (FEAT-004)
+# overwrites daemon/web/dist on a networked machine and is NOT committed.
+#
+# Tracked fallback build output:
+#   daemon/web/dist/index.html, styles.css, and the compiled *.js modules.
 
 # Editor / OS junk
 .DS_Store

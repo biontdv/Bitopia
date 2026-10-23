@@ -1,0 +1,378 @@
+/* Friendly, approachable styling for the fallback UI. Warm, soft palette and
+   rounded shapes so the office feels inviting rather than utilitarian. */
+
+:root {
+  --bg: #fff7ec;
+  --panel: #ffffff;
+  --panel-border: #ffe0b8;
+  --accent: #ff9f43;
+  --accent-deep: #f08a24;
+  --text: #4a3b2c;
+  --muted: #9b8a76;
+  --danger: #e5484d;
+  --ok: #2fb67c;
+  --shadow: 0 6px 18px rgba(221, 160, 90, 0.18);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.topbar {
+  padding: 14px 22px;
+  background: linear-gradient(90deg, #ffd9a8, #ffe9cf);
+  border-bottom: 2px solid var(--panel-border);
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.brand-emoji {
+  background: var(--accent);
+  color: #fff;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 10px;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+}
+.topbar h1 {
+  margin: 0;
+  font-size: 20px;
+}
+.tagline {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.layout {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  flex: 1;
+  min-height: 0;
+}
+
+.scene-wrap {
+  flex: 1 1 auto;
+  background: var(--panel);
+  border: 2px solid var(--panel-border);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  min-height: 420px;
+}
+#scene {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.sidebar {
+  flex: 0 0 360px;
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  border: 2px solid var(--panel-border);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.tabs {
+  display: flex;
+  border-bottom: 2px solid var(--panel-border);
+}
+.tab {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  background: #fff3e2;
+  color: var(--muted);
+  font-weight: 600;
+  cursor: pointer;
+}
+.tab.active {
+  background: var(--panel);
+  color: var(--accent-deep);
+  box-shadow: inset 0 -3px 0 var(--accent);
+}
+
+.tab-panel {
+  display: none;
+  padding: 14px;
+  overflow-y: auto;
+}
+.tab-panel.active {
+  display: block;
+}
+
+.orchestrator {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fff3e2;
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+.orch-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.orch-title {
+  font-weight: 700;
+}
+.conn-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.conn-dot.on {
+  background: var(--ok);
+}
+.conn-dot.off {
+  background: var(--danger);
+}
+.conn-text {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.agent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.agent-card {
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: #fffdf9;
+}
+.agent-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.agent-name {
+  font-weight: 700;
+}
+.agent-meta {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--muted);
+}
+.state-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+.state-dot.running {
+  background: var(--ok);
+}
+.state-dot.paused,
+.state-dot.starting,
+.state-dot.stopping {
+  background: #f0b429;
+}
+.state-dot.crashed {
+  background: var(--danger);
+}
+
+.agent-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.btn {
+  border: 1px solid var(--panel-border);
+  background: #fff;
+  color: var(--text);
+  padding: 6px 12px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: transform 0.05s ease, background 0.15s ease;
+}
+.btn:hover {
+  background: #fff3e2;
+}
+.btn:active {
+  transform: translateY(1px);
+}
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.btn-small {
+  padding: 3px 10px;
+  font-size: 12px;
+}
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent-deep);
+}
+.btn-primary:hover {
+  background: var(--accent-deep);
+}
+.btn-stop-all {
+  background: var(--danger);
+  color: #fff;
+  border-color: #c53b40;
+}
+.btn-stop-all:hover {
+  background: #c53b40;
+}
+.btn-whip {
+  background: #ffe9cf;
+  border-color: var(--accent);
+  color: var(--accent-deep);
+}
+.btn-danger {
+  color: var(--danger);
+  border-color: #f3b3b5;
+}
+
+.muted {
+  color: var(--muted);
+}
+.small {
+  font-size: 12px;
+}
+.error-line {
+  background: #fde8e8;
+  color: var(--danger);
+  border: 1px solid #f3b3b5;
+  border-radius: 10px;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+
+h3 {
+  margin: 16px 0 8px;
+  font-size: 14px;
+  color: var(--accent-deep);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+.field-inline {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.txt,
+.num,
+.sel,
+.file {
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--text);
+}
+.num {
+  width: 64px;
+}
+
+.row-card {
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  padding: 10px;
+  margin-bottom: 8px;
+  background: #fffdf9;
+}
+.row-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.row-line:last-child {
+  margin-bottom: 0;
+}
+.tag {
+  background: #ffe9cf;
+  color: var(--accent-deep);
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.office-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.terminal-wrap {
+  margin: 0 16px 16px;
+  background: #241c13;
+  border: 2px solid #3a2e20;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+.terminal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 14px;
+  background: #2f2518;
+  color: #ffcf87;
+  font-weight: 600;
+  font-size: 13px;
+}
+.terminal {
+  margin: 0;
+  padding: 12px 14px;
+  height: 200px;
+  overflow-y: auto;
+  color: #ffe9cf;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 12.5px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+@media (max-width: 900px) {
+  .layout {
+    flex-direction: column;
+  }
+  .sidebar {
+    flex: 1 1 auto;
+  }
+}

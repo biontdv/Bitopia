@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Agentic Virtual Office</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-emoji">office</span>
+        <h1>Agentic Virtual Office</h1>
+      </div>
+      <p class="tagline">a friendly place for your agents to work (and take a break)</p>
+    </header>
+
+    <main class="layout">
+      <section class="scene-wrap">
+        <canvas id="scene"></canvas>
+      </section>
+
+      <aside class="sidebar">
+        <div class="tabs">
+          <button class="tab active" data-tab="monitoring">Monitoring</button>
+          <button class="tab" data-tab="office-setup">Office setup</button>
+        </div>
+
+        <div class="tab-panel active" data-panel="monitoring">
+          <div id="monitoring"></div>
+        </div>
+
+        <div class="tab-panel" data-panel="office-setup">
+          <div id="office-setup"></div>
+        </div>
+      </aside>
+    </main>
+
+    <section class="terminal-wrap">
+      <div class="terminal-head">
+        <span>Agent output</span>
+        <button id="terminal-clear" class="btn btn-small">Clear</button>
+      </div>
+      <pre id="terminal" class="terminal"></pre>
+    </section>
+
+    <script type="module" src="/main.js"></script>
+  </body>
+</html>

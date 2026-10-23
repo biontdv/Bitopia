@@ -80,6 +80,7 @@ type server struct {
 func newServer(cfg config.Config, store *office.Store) *server {
 	s := &server{cfg: cfg, store: store}
 	s.hub = ws.NewHub(s.handleCommand)
+	s.hub.SetOnConnect(s.seedClient)
 	s.manager = agent.NewManager(s.hub)
 	for _, a := range cfg.Agents {
 		s.manager.Add(agent.AgentConfig{
@@ -110,13 +111,18 @@ func (s *server) handleHealthz(w http.ResponseWriter, _ *http.Request) {
 	_, _ = io.WriteString(w, "ok\n")
 }
 
-// handleWS upgrades the connection and, once connected, sends the initial
-// roster and office state so a fresh client renders immediately.
+// handleWS upgrades the connection to a WebSocket. The hub's on-connect seed
+// (see seedClient) sends the initial roster and office state so a fresh client
+// renders immediately.
 func (s *server) handleWS(w http.ResponseWriter, r *http.Request) {
-	// Seed the new client after the handshake by broadcasting current state.
-	// We register via the hub handler path; send snapshots right after upgrade
-	// by wrapping the standard handler.
 	s.hub.Handler()(w, r)
+}
+
+// seedClient sends the current agent roster and office state to a freshly
+// connected client so the UI renders immediately without extra round-trips.
+func (s *server) seedClient(conn *ws.Conn) {
+	conn.Send(ws.MustEnvelope("agent.list", "", s.manager.List()))
+	conn.Send(ws.MustEnvelope("office.state", "", s.store.Get()))
 }
 
 // handleCommand routes a decoded client command to the manager or office store

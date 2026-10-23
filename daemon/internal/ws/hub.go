@@ -15,14 +15,20 @@ import (
 // originating connection, useful for targeted error replies.
 type CommandHandler func(conn *Conn, env Envelope)
 
+// ConnectHandler is invoked once for each newly connected client, after the
+// handshake and registration. The daemon uses it to seed a fresh client with
+// the current agent roster and office state so the UI renders immediately.
+type ConnectHandler func(conn *Conn)
+
 // Hub tracks connected clients and broadcasts envelopes to all of them. A
 // per-connection buffered send channel means a slow client cannot block the
 // hub or other clients.
 type Hub struct {
-	mu      sync.RWMutex
-	conns   map[*Conn]struct{}
-	seq     atomic.Uint64
-	handler CommandHandler
+	mu        sync.RWMutex
+	conns     map[*Conn]struct{}
+	seq       atomic.Uint64
+	handler   CommandHandler
+	onConnect ConnectHandler
 }
 
 // NewHub creates an empty hub. handler is invoked for every client command;
@@ -32,6 +38,13 @@ func NewHub(handler CommandHandler) *Hub {
 		conns:   make(map[*Conn]struct{}),
 		handler: handler,
 	}
+}
+
+// SetOnConnect registers a callback invoked once per newly connected client
+// (after registration), used to seed the client with current state. Passing
+// nil disables seeding.
+func (h *Hub) SetOnConnect(fn ConnectHandler) {
+	h.onConnect = fn
 }
 
 // nextSeq returns the next hub-wide sequence number.
@@ -180,6 +193,9 @@ func (h *Hub) serve(w http.ResponseWriter, r *http.Request) error {
 	h.Register(conn)
 
 	go conn.writeLoop()
+	if h.onConnect != nil {
+		h.onConnect(conn)
+	}
 	conn.readLoop()
 	return nil
 }

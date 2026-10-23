@@ -11,10 +11,70 @@ no effect on the real process.
 This project is inspired, in feature spirit only, by
 `HarnessMD/munder-difflin`. No code or text is copied from it.
 
-> Status: early. This README is a stub. The full run instructions and feature
-> walkthrough are finalized in later features (see `.agents/tasks` for the
-> delivery plan). For architecture and the exact client/server contract, read
-> `DESIGN.md`.
+For architecture and the exact client/server contract, read `DESIGN.md`.
+
+## Quick start (offline, no npm)
+
+The entire vertical slice runs offline with no package installs. The daemon uses
+only the Go standard library, and the embedded fallback UI is compiled by the
+globally available `tsc`.
+
+### Prerequisites
+
+- Go 1.25 or newer on your `PATH`.
+- TypeScript's `tsc` on your `PATH` (any recent 5.x). Only used to rebuild the
+  fallback UI; you can skip it because the compiled UI is committed.
+- A modern browser.
+
+No network access, `npm install`, `go get`, or bundler is required.
+
+### Run it
+
+```sh
+# 1. (Optional) rebuild the embedded fallback UI. The compiled output is already
+#    committed under daemon/web/dist, so you can skip this and jump to step 2.
+./frontend-fallback/build.sh
+
+# 2. Build the daemon. It embeds whatever is in daemon/web/dist via //go:embed.
+cd daemon
+go build -o bin/officed ./cmd/officed
+
+# 3. Run it, then open http://localhost:8080 in your browser.
+./bin/officed
+```
+
+Use `-addr` to change the listen address (default `:8080`) and `-data` to change
+the data directory (default `./data`, which holds `office.json` and the uploaded
+logo). For example: `./bin/officed -addr 127.0.0.1:8099 -data ./data`.
+
+### What you will see
+
+- A friendly 2D office scene on a Canvas: a room, furniture (desk, sofa,
+  billiard table, coffee station), the company logo if you upload one, and one
+  avatar per agent. Each avatar walks around, shows a status speech bubble that
+  reflects its lifecycle state, and when it has no active task it wanders off to
+  relax on the sofa, make coffee, or play billiard, then returns to its desk
+  when work resumes (purely cosmetic).
+- A terminal panel at the bottom streaming the agents' output live, capped to a
+  bounded line buffer.
+- A monitoring panel with per-agent Start / Pause / Resume / Stop buttons, an
+  orchestrator "Stop all work" button, and a per-agent "Cambuk" (whip) button
+  that plays a brief sprite reaction (a shake plus a surprised "!" and a sweat
+  drop) with no effect on the agent's real run state.
+- An "Office setup" tab to edit the room layout, add or remove furniture, and
+  upload a company logo. It works both during initial setup and anytime after
+  the office already exists; Save sends `office.update` and the scene re-renders.
+
+Two MOCK agents are preconfigured, so the office is demoable with no real CLI
+installed. Press "Start" on an agent to watch it stream synthetic output.
+
+### Rebuilding the fallback UI
+
+`frontend-fallback/build.sh` runs `tsc -p frontend-fallback/tsconfig.json`
+(emitting ES2020 modules into `daemon/web/dist`) and copies `index.html` and
+`styles.css` alongside them. After rebuilding the UI, rebuild the daemon so the
+`//go:embed` picks up the new files. The committed build output means a fresh
+checkout runs with just steps 2 and 3 above.
 
 ## What it is
 
