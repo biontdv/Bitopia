@@ -17,6 +17,12 @@ type runner interface {
 	Output() <-chan OutputChunk
 	// Wait blocks until the runner has fully exited.
 	Wait()
+	// ExitError returns the process exit status observed after Wait returns:
+	// nil means the runner ran to completion successfully (a clean exit), while
+	// a non-nil error (for example an *exec.ExitError with a non-zero code, or a
+	// termination by signal) means it exited abnormally. It is only meaningful
+	// after Wait has returned.
+	ExitError() error
 	// Pause suspends output/execution (SIGSTOP for PTY, halt generator for mock).
 	Pause() error
 	// Resume continues after a Pause.

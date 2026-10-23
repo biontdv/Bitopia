@@ -57,9 +57,11 @@ func canTransition(from, to State) bool {
 	case StateStarting:
 		return to == StateRunning || to == StateCrashed || to == StateStopping
 	case StateRunning:
-		return to == StatePaused || to == StateStopping || to == StateCrashed
+		// running can also go directly to stopped when the process terminates on
+		// its own (a clean self-exit), without an explicit stop request.
+		return to == StatePaused || to == StateStopping || to == StateStopped || to == StateCrashed
 	case StatePaused:
-		return to == StateRunning || to == StateStopping || to == StateCrashed
+		return to == StateRunning || to == StateStopping || to == StateStopped || to == StateCrashed
 	case StateStopping:
 		return to == StateStopped || to == StateCrashed
 	default:

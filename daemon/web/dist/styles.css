@@ -368,6 +368,19 @@ h3 {
   word-break: break-word;
 }
 
+/* Shown in the office setup panel when the server office changed while the user
+   had unsaved local edits, offering a one-click reload. */
+.server-changed {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fff4dc;
+  border: 1px solid var(--accent, #ffcf87);
+  border-radius: 10px;
+  padding: 8px 12px;
+  margin: 8px 0;
+}
+
 @media (max-width: 900px) {
   .layout {
     flex-direction: column;

@@ -169,7 +169,13 @@ func (m *Manager) BroadcastList() {
 }
 
 // broadcastState emits an agent.state envelope reflecting the agent's current
-// fields. whipped is a one-shot flag set only for the gag event.
+// fields. whipped is a one-shot cosmetic flag set ONLY for the cambuk gag event
+// (see Whip). Consumers MUST treat an agent.state with whipped=true as a
+// transient animation trigger and NOT cache its lifecycle fields: the run state
+// does not change on a whip, and a normal whipped=false state is broadcast
+// immediately after. Both current clients honor this (store.applyState early
+// returns on whipped). This one-shot overload of agent.state is deliberate and
+// documented in DESIGN.md section 2.3.
 func (m *Manager) broadcastState(a *Agent, whipped bool) {
 	a.mu.Lock()
 	payload := StatePayload{
@@ -296,17 +302,36 @@ func (m *Manager) monitorLoop(a *Agent, run runner, gen uint64, startedAt time.T
 		return
 
 	case <-exited:
-		// Unexpected exit: apply the circuit breaker.
-		m.handleUnexpectedExit(a, gen, startedAt)
+		// The process exited on its own. Classify it: a clean exit settles the
+		// agent to stopped; a failing exit goes through the crash-loop breaker.
+		m.handleUnexpectedExit(a, run, gen, startedAt)
 	}
 }
 
-// handleUnexpectedExit records a crash and either restarts the agent (with
-// backoff) or trips the breaker and moves it to crashed.
-func (m *Manager) handleUnexpectedExit(a *Agent, gen uint64, startedAt time.Time) {
+// handleUnexpectedExit is invoked when a runner exits without an explicit stop.
+// A clean exit (nil ExitError) is a normal self-termination and settles the
+// agent to stopped. A failing exit is fed through the crash-loop breaker, which
+// either restarts the agent (with backoff) or trips and moves it to crashed.
+func (m *Manager) handleUnexpectedExit(a *Agent, run runner, gen uint64, startedAt time.Time) {
+	exitErr := run.ExitError()
+
 	a.mu.Lock()
 	if a.gen != gen {
 		a.mu.Unlock()
+		return
+	}
+	// A process that ran to completion successfully is a terminal, expected
+	// event: settle to stopped and do NOT restart. This is the running->stopped
+	// FSM edge for a self-terminating CLI (e.g. a claude/codex/antigravity run
+	// that finishes its task with exit code 0). The crash-loop breaker below
+	// only applies to genuinely-failing exits.
+	if exitErr == nil {
+		a.state = StateStopped
+		a.pid = 0
+		a.restarts = 0
+		a.mu.Unlock()
+		m.broadcastState(a, false)
+		m.BroadcastList()
 		return
 	}
 	// A quick exit (within the crash window) counts toward the breaker.

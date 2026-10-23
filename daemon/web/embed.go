@@ -9,6 +9,12 @@ import (
 	"io/fs"
 )
 
+// The embedded dist/ is compiled output of frontend-fallback/src. Regenerate it
+// (and keep it from drifting) by running the fallback build, which recompiles
+// with the global tsc and copies the static assets into this dir:
+//
+//go:generate ../../frontend-fallback/build.sh
+//
 //go:embed all:dist
 var distFS embed.FS
 

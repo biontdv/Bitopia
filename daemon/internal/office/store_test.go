@@ -70,6 +70,31 @@ func TestUpdatePersistsAndReloads(t *testing.T) {
 	}
 }
 
+// TestUpdateIgnoresClientLogoRef asserts that an office.update patch cannot set
+// logoRef: the reference is owned by the upload endpoint (SetLogoRef) so it
+// cannot disagree with the served image bytes.
+func TestUpdateIgnoresClientLogoRef(t *testing.T) {
+	dir := t.TempDir()
+	s, err := NewStore(dir)
+	if err != nil {
+		t.Fatalf("NewStore: %v", err)
+	}
+	if _, err := s.SetLogoRef("/api/logo?v=7"); err != nil {
+		t.Fatalf("SetLogoRef: %v", err)
+	}
+	// A client tries to override logoRef via office.update.
+	updated, err := s.Update(Office{Name: "Renamed", LogoRef: "https://evil.example/x.png"})
+	if err != nil {
+		t.Fatalf("Update: %v", err)
+	}
+	if updated.Name != "Renamed" {
+		t.Fatalf("name not updated: %q", updated.Name)
+	}
+	if updated.LogoRef != "/api/logo?v=7" {
+		t.Fatalf("logoRef changed by client patch: %q", updated.LogoRef)
+	}
+}
+
 // TestSetLogoRef asserts the logo reference is stored and persisted.
 func TestSetLogoRef(t *testing.T) {
 	dir := t.TempDir()

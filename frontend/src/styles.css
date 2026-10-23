@@ -401,3 +401,16 @@ h3 {
   font-size: 14px;
   color: var(--accent-ink);
 }
+
+/* Shown in the office setup panel when the server office changed while the user
+   had unsaved local edits, offering a one-click reload. */
+.server-changed {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fff4dc;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  margin: 8px 0;
+}

@@ -216,6 +216,12 @@ func (s *server) handleLogo(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		defer f.Close()
+		// Serve with the content type detected and recorded at upload time so a
+		// non-sniffable image is not mislabeled. Fall back to ServeContent's own
+		// sniffing if no type was recorded (older uploads).
+		if ct := s.readLogoType(); ct != "" {
+			w.Header().Set("Content-Type", ct)
+		}
 		http.ServeContent(w, r, "logo", time.Now(), f)
 
 	case http.MethodPost:
@@ -241,7 +247,8 @@ func (s *server) handleLogo(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "read error", http.StatusInternalServerError)
 			return
 		}
-		if ct := http.DetectContentType(data); len(ct) < 6 || ct[:6] != "image/" {
+		ct := http.DetectContentType(data)
+		if len(ct) < 6 || ct[:6] != "image/" {
 			http.Error(w, "not an image", http.StatusUnsupportedMediaType)
 			return
 		}
@@ -249,6 +256,9 @@ func (s *server) handleLogo(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "write error", http.StatusInternalServerError)
 			return
 		}
+		// Record the detected content type in a sidecar so GET can serve it
+		// explicitly (DetectContentType cannot always round-trip on read).
+		_ = os.WriteFile(s.store.DataDir()+"/logo.type", []byte(ct), 0o644)
 		updated, err := s.store.SetLogoRef("/api/logo?v=" + timeVersion())
 		if err != nil {
 			http.Error(w, "store error", http.StatusInternalServerError)
@@ -264,6 +274,16 @@ func (s *server) handleLogo(w http.ResponseWriter, r *http.Request) {
 
 func timeVersion() string {
 	return time.Now().Format("20060102150405")
+}
+
+// readLogoType returns the content type recorded at upload time, or "" if none
+// was recorded (so the caller can fall back to sniffing).
+func (s *server) readLogoType() string {
+	data, err := os.ReadFile(s.store.DataDir() + "/logo.type")
+	if err != nil {
+		return ""
+	}
+	return string(data)
 }
 
 // staticHandler serves the embedded UI with an index.html fallback for

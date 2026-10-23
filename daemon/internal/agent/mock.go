@@ -43,6 +43,10 @@ func (m *mockRunner) Output() <-chan OutputChunk { return m.out }
 // Wait blocks until the runner has fully stopped (done closed).
 func (m *mockRunner) Wait() { <-m.done }
 
+// ExitError reports the exit status of the mock runner. The mock only ends on
+// an explicit Stop, which is a clean shutdown, so it always reports nil.
+func (m *mockRunner) ExitError() error { return nil }
+
 // Start begins generating output. It returns immediately; generation runs in a
 // goroutine until Stop is called.
 func (m *mockRunner) Start() error {

@@ -241,8 +241,9 @@ broadcasts `office.state`.
 Note on the logo: the raw image is uploaded over HTTP (`POST /api/logo`, a
 multipart file) because binary blobs do not belong in the JSON WebSocket
 stream. That endpoint stores the file and sets `logoRef`; the daemon then
-broadcasts `office.state` so all clients re-render. `office.update` may also set
-`logoRef` directly to an already-uploaded reference.
+broadcasts `office.state` so all clients re-render. `logoRef` is owned by the
+upload endpoint: a `logoRef` sent in an `office.update` patch is ignored so the
+reference can never disagree with the image bytes GET serves.
 
 ### 2.3 Server to client messages
 

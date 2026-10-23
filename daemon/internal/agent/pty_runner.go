@@ -48,6 +48,15 @@ func (p *ptyRunner) Output() <-chan OutputChunk { return p.out }
 // Wait blocks until the process has exited and output drained.
 func (p *ptyRunner) Wait() { <-p.done }
 
+// ExitError returns the error captured from cmd.Wait(): nil if the process
+// exited with status zero, or a non-nil error (e.g. *exec.ExitError) otherwise.
+// It is only meaningful after Wait has returned.
+func (p *ptyRunner) ExitError() error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.exit
+}
+
 // Start opens the PTY, launches the process, and begins reading its output.
 func (p *ptyRunner) Start() error {
 	if !ptySupported() {

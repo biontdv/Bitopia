@@ -73,9 +73,11 @@ func (s *Store) Update(patch Office) (Office, error) {
 	if patch.Name != "" {
 		cur.Name = patch.Name
 	}
-	if patch.LogoRef != "" {
-		cur.LogoRef = patch.LogoRef
-	}
+	// Note: logoRef is intentionally NOT taken from an office.update patch. The
+	// logo reference is owned by the upload endpoint (SetLogoRef), which is the
+	// only writer that also stores the matching image bytes GET serves. Honoring
+	// an arbitrary client-set logoRef here would let the reference and the served
+	// bytes disagree, so we preserve the server-owned value instead.
 	if patch.Rooms != nil {
 		cur.Rooms = patch.Rooms
 	}

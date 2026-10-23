@@ -20,13 +20,23 @@ export function OfficeSetup() {
   const ws = useWs();
   const office = useOffice(selectOffice);
   const [draft, setDraft] = useState<Office | null>(null);
+  // dirty tracks whether the user has made local edits the server has not seen.
+  const [dirty, setDirty] = useState(false);
   const [logoStatus, setLogoStatus] = useState<string>("");
 
-  // Adopt server office into the editable draft on first load / external change,
-  // but only when there are no local edits in flight.
+  // Reconcile with the server office. While the user has NOT touched the draft
+  // locally (not dirty), we re-adopt any server change so external updates
+  // (a logo upload broadcast, another client's office.update) immediately refresh
+  // the open editor. Once the draft is dirty we stop clobbering the user's edits
+  // and instead surface a "server changed" reload affordance below.
   useEffect(() => {
-    if (office && !draft) setDraft(clone(office));
-  }, [office, draft]);
+    if (!office) return;
+    if (!dirty) setDraft(clone(office));
+  }, [office, dirty]);
+
+  // Detect a server change the user has not yet reconciled while editing.
+  const serverChangedWhileDirty =
+    dirty && draft != null && office != null && JSON.stringify(office) !== JSON.stringify(draft);
 
   const current = draft ?? office;
   if (!current) {
@@ -37,18 +47,39 @@ export function OfficeSetup() {
     );
   }
 
-  // Mutate a copy of the draft and store it so inputs stay controlled.
+  // Mutate a copy of the draft and store it so inputs stay controlled. Any edit
+  // marks the draft dirty so the server-reconcile effect stops overwriting it.
   const edit = (fn: (d: Office) => void) => {
     const base = draft ?? clone(current);
     const next = clone(base);
     fn(next);
     setDraft(next);
+    setDirty(true);
+  };
+
+  // editDraft replaces the whole draft (used by furniture add/remove) and marks
+  // it dirty.
+  const editDraft = (next: Office) => {
+    setDraft(next);
+    setDirty(true);
   };
 
   const save = () => {
-    if (draft) ws.updateOffice(draft);
+    if (draft) {
+      ws.updateOffice(draft);
+      // The broadcast echo will re-sync; treat the local draft as clean again.
+      setDirty(false);
+    }
   };
-  const reset = () => setDraft(office ? clone(office) : null);
+  const reset = () => {
+    setDraft(office ? clone(office) : null);
+    setDirty(false);
+  };
+  // reloadFromServer discards local edits and adopts the latest server office.
+  const reloadFromServer = () => {
+    setDraft(office ? clone(office) : null);
+    setDirty(false);
+  };
 
   const uploadLogo = async (file: File) => {
     const form = new FormData();
@@ -68,6 +99,17 @@ export function OfficeSetup() {
         Customize the office during setup and anytime after it exists. Changes apply with Save.
       </p>
 
+      {serverChangedWhileDirty && (
+        <div className="server-changed">
+          <span className="muted small">
+            The office changed on the server while you were editing.
+          </span>
+          <button className="btn" onClick={reloadFromServer}>
+            Reload from server
+          </button>
+        </div>
+      )}
+
       <label className="field">
         <span>Office name</span>
         <input
@@ -85,7 +127,7 @@ export function OfficeSetup() {
 
       <h3>Furniture</h3>
       {current.furniture.map((f) => (
-        <FurnitureRow key={f.id} f={f} edit={edit} setDraft={setDraft} draft={draft} current={current} />
+        <FurnitureRow key={f.id} f={f} edit={edit} editDraft={editDraft} draft={draft} current={current} />
       ))}
       <div className="office-actions">
         <button
@@ -177,13 +219,13 @@ function RoomRow({ room, edit }: { room: Room; edit: (fn: (d: Office) => void) =
 function FurnitureRow({
   f,
   edit,
-  setDraft,
+  editDraft,
   draft,
   current,
 }: {
   f: Furniture;
   edit: (fn: (d: Office) => void) => void;
-  setDraft: (o: Office) => void;
+  editDraft: (o: Office) => void;
   draft: Office | null;
   current: Office;
 }) {
@@ -207,7 +249,7 @@ function FurnitureRow({
   const remove = () => {
     const base = clone(draft ?? current);
     base.furniture = base.furniture.filter((x) => x.id !== f.id);
-    setDraft(base);
+    editDraft(base);
   };
 
   return (

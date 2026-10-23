@@ -102,17 +102,32 @@ export class OfficePanel {
         this.store = store;
         this.socket = socket;
         this.draft = null;
+        // dirty tracks whether the user has made local edits the server has not seen.
+        this.dirty = false;
         store.subscribe(() => this.onStore());
         this.render();
     }
-    // onStore adopts server office state into the editable draft when we do not
-    // already have local edits in flight (first load / external updates).
+    // onStore reconciles with the server office. While the user has NOT made local
+    // edits (not dirty), we re-adopt any server change so external updates (a logo
+    // upload broadcast, another client's office.update) immediately refresh the
+    // open editor. Once the draft is dirty we stop clobbering the user's edits and
+    // surface a "server changed" reload affordance instead.
     onStore() {
         const o = this.store.get().office;
-        if (o && !this.draft) {
+        if (o && !this.dirty) {
             this.draft = clone(o);
         }
         this.render();
+    }
+    // markDirty records that the user edited the draft locally.
+    markDirty() {
+        this.dirty = true;
+    }
+    // serverChangedWhileDirty is true when the server office differs from the
+    // user's unsaved draft, so we can offer a reload.
+    serverChangedWhileDirty() {
+        const o = this.store.get().office;
+        return this.dirty && this.draft != null && o != null && JSON.stringify(o) !== JSON.stringify(this.draft);
     }
     render() {
         const s = this.store.get();
@@ -121,6 +136,20 @@ export class OfficePanel {
         this.root.append(h("p", { class: "muted small" }, [
             "Customize the office during setup and anytime after it exists. Changes apply with Save.",
         ]));
+        if (this.serverChangedWhileDirty()) {
+            const reload = h("button", { class: "btn" }, ["Reload from server"]);
+            reload.addEventListener("click", () => {
+                this.draft = s.office ? clone(s.office) : null;
+                this.dirty = false;
+                this.render();
+            });
+            this.root.append(h("div", { class: "server-changed" }, [
+                h("span", { class: "muted small" }, [
+                    "The office changed on the server while you were editing.",
+                ]),
+                reload,
+            ]));
+        }
         if (!office) {
             this.root.append(h("p", { class: "muted" }, ["Waiting for office state..."]));
             return;
@@ -146,20 +175,27 @@ export class OfficePanel {
         save.addEventListener("click", () => {
             if (this.draft) {
                 this.socket.send("office.update", "", this.draft);
+                // The broadcast echo re-syncs; treat the local draft as clean again.
+                this.dirty = false;
             }
         });
         const reset = h("button", { class: "btn" }, ["Reset"]);
         reset.addEventListener("click", () => {
             this.draft = s.office ? clone(s.office) : null;
+            this.dirty = false;
             this.render();
         });
         this.root.append(h("div", { class: "office-actions" }, [save, reset]));
     }
+    // ensureDraft returns the editable draft, creating it from the server office
+    // on first edit. Every caller is a local edit, so it marks the draft dirty so
+    // the onStore reconcile stops overwriting the user's in-flight changes.
     ensureDraft() {
         if (!this.draft) {
             const o = this.store.get().office;
             this.draft = o ? clone(o) : { id: "office-1", name: "HQ", rooms: [], furniture: [] };
         }
+        this.markDirty();
         return this.draft;
     }
     nameRow(office) {

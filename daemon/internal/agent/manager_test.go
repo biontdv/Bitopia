@@ -2,6 +2,7 @@ package agent
 
 import (
 	"encoding/json"
+	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -208,7 +209,8 @@ func TestWhipEmitsGagWithoutChangingState(t *testing.T) {
 	_ = m.Stop("a1", 200*time.Millisecond)
 }
 
-// crashRunner is a runner that exits immediately, used to exercise the breaker.
+// crashRunner is a runner that exits immediately with a failing status, used to
+// exercise the crash-loop breaker.
 type crashRunner struct {
 	out  chan OutputChunk
 	done chan struct{}
@@ -228,11 +230,84 @@ func (c *crashRunner) Start() error {
 }
 func (c *crashRunner) Output() <-chan OutputChunk { return c.out }
 func (c *crashRunner) Wait()                      { <-c.done }
-func (c *crashRunner) Pause() error               { return nil }
-func (c *crashRunner) Resume() error              { return nil }
-func (c *crashRunner) Stop(time.Duration) error   { return nil }
-func (c *crashRunner) Signal(string) error        { return nil }
-func (c *crashRunner) PID() int                   { return 0 }
+
+// ExitError reports a non-nil failing exit so the exit is treated as a crash.
+func (c *crashRunner) ExitError() error         { return fmt.Errorf("exit status 1") }
+func (c *crashRunner) Pause() error             { return nil }
+func (c *crashRunner) Resume() error            { return nil }
+func (c *crashRunner) Stop(time.Duration) error { return nil }
+func (c *crashRunner) Signal(string) error      { return nil }
+func (c *crashRunner) PID() int                 { return 0 }
+
+// cleanExitRunner runs past the crash window and then exits with a zero status
+// (ExitError == nil), modeling a real CLI that completes its task normally.
+type cleanExitRunner struct {
+	delay   time.Duration
+	out     chan OutputChunk
+	done    chan struct{}
+	starts  *int32Counter
+	stopped chan struct{}
+}
+
+func newCleanExitRunner(delay time.Duration, starts *int32Counter) *cleanExitRunner {
+	return &cleanExitRunner{
+		delay:   delay,
+		out:     make(chan OutputChunk),
+		done:    make(chan struct{}),
+		starts:  starts,
+		stopped: make(chan struct{}),
+	}
+}
+
+func (c *cleanExitRunner) Start() error {
+	c.starts.inc()
+	go func() {
+		select {
+		case <-time.After(c.delay):
+			// Ran to completion successfully.
+		case <-c.stopped:
+			// Stopped early by the manager.
+		}
+		close(c.out)
+		close(c.done)
+	}()
+	return nil
+}
+func (c *cleanExitRunner) Output() <-chan OutputChunk { return c.out }
+func (c *cleanExitRunner) Wait()                      { <-c.done }
+
+// ExitError is nil: a clean, successful exit.
+func (c *cleanExitRunner) ExitError() error { return nil }
+func (c *cleanExitRunner) Pause() error     { return nil }
+func (c *cleanExitRunner) Resume() error    { return nil }
+func (c *cleanExitRunner) Stop(time.Duration) error {
+	select {
+	case <-c.stopped:
+	default:
+		close(c.stopped)
+	}
+	return nil
+}
+func (c *cleanExitRunner) Signal(string) error { return nil }
+func (c *cleanExitRunner) PID() int            { return 0 }
+
+// int32Counter is a tiny mutex-guarded counter used to count runner launches.
+type int32Counter struct {
+	mu sync.Mutex
+	n  int
+}
+
+func (c *int32Counter) inc() {
+	c.mu.Lock()
+	c.n++
+	c.mu.Unlock()
+}
+
+func (c *int32Counter) get() int {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.n
+}
 
 // TestCrashLoopTripsBreaker asserts that repeated immediate exits trip the
 // circuit breaker and move the agent to crashed rather than restarting forever.
@@ -257,6 +332,58 @@ func TestCrashLoopTripsBreaker(t *testing.T) {
 	if r, _ := m.Restarts("a1"); r < m.crashThreshold {
 		t.Fatalf("expected at least %d restarts recorded, got %d", m.crashThreshold, r)
 	}
+}
+
+// TestCleanExitAfterWindowSettlesStopped asserts a runner that exits cleanly
+// AFTER the crash window transitions the agent to stopped and is NOT relaunched.
+// This is the exact gap the earlier suite missed: a real CLI that completes its
+// task with exit code 0 must settle, not respawn forever. It also asserts that
+// Start can restart the stopped agent.
+func TestCleanExitAfterWindowSettlesStopped(t *testing.T) {
+	m, _ := newTestManager()
+	// Short crash window so the runner's delay easily exceeds it.
+	m.crashWindow = 50 * time.Millisecond
+
+	starts := &int32Counter{}
+	m.setFactory(func(cfg AgentConfig) (runner, string, error) {
+		return newCleanExitRunner(150*time.Millisecond, starts), "mock", nil
+	})
+
+	m.Add(AgentConfig{ID: "a1", DisplayName: "Finisher", Adapter: KindMock})
+	if err := m.Start("a1", ""); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+
+	// The runner exits cleanly after ~150ms; the agent must settle to stopped.
+	if !waitFor(t, 3*time.Second, func() bool { st, _ := m.State("a1"); return st == StateStopped }) {
+		st, _ := m.State("a1")
+		t.Fatalf("clean exit did not settle to stopped; state = %q", st)
+	}
+
+	// It must NOT be relaunched: exactly one start, and the state stays stopped.
+	time.Sleep(300 * time.Millisecond)
+	if n := starts.get(); n != 1 {
+		t.Fatalf("clean-exit agent was relaunched: launches = %d, want 1", n)
+	}
+	if st, _ := m.State("a1"); st != StateStopped {
+		t.Fatalf("agent should remain stopped, got %q", st)
+	}
+	if r, _ := m.Restarts("a1"); r != 0 {
+		t.Fatalf("clean exit should not record restarts, got %d", r)
+	}
+
+	// A stopped agent can still be restarted by an explicit Start.
+	if err := m.Start("a1", ""); err != nil {
+		t.Fatalf("restart of stopped agent: %v", err)
+	}
+	if !waitFor(t, time.Second, func() bool { st, _ := m.State("a1"); return st == StateRunning }) {
+		st, _ := m.State("a1")
+		t.Fatalf("restarted agent did not reach running; state = %q", st)
+	}
+	if n := starts.get(); n != 2 {
+		t.Fatalf("expected a second launch after restart, got %d", n)
+	}
+	_ = m.Stop("a1", 200*time.Millisecond)
 }
 
 // TestInvalidTransitionRejected asserts pausing a never-started agent is
