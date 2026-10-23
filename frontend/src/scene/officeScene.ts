@@ -31,6 +31,7 @@ import {
 import type { OfficeStore } from "../store/store";
 import type { AgentView } from "../store/store";
 import type { Furniture, Office } from "../ws/protocol";
+import { drawPixelArt, hasPixelArt } from "./pixelArt";
 
 const COLORS = {
   floor: 0xfdf6ec,
@@ -213,19 +214,26 @@ export class OfficeScene {
   private buildFurniture(f: Furniture): Container {
     const node = new Container();
     const size = furnitureSize(f.type);
-    const color = FURNITURE_COLORS[f.type] ?? FURNITURE_COLORS.generic;
     const g = new Graphics();
-    g.roundRect(0, 0, size.w, size.h, 10).fill(color);
+    // `sofa` and `desk` use programmatic pixel-art sprites (Opsi A); every
+    // other furniture type keeps its plain rounded-rect + icon look.
+    const pixel = hasPixelArt(f.type) && drawPixelArt(g, f.type, size.w, size.h);
+    if (!pixel) {
+      const color = FURNITURE_COLORS[f.type] ?? FURNITURE_COLORS.generic;
+      g.roundRect(0, 0, size.w, size.h, 10).fill(color);
+    }
     node.addChild(g);
 
-    const label = new Text({
-      text: furnitureIcon(f.type),
-      style: { fill: 0x3a2e22, fontSize: 13, fontWeight: "600", fontFamily: "system-ui" },
-    });
-    label.anchor.set(0.5);
-    label.x = size.w / 2;
-    label.y = size.h / 2;
-    node.addChild(label);
+    if (!pixel) {
+      const label = new Text({
+        text: furnitureIcon(f.type),
+        style: { fill: 0x3a2e22, fontSize: 13, fontWeight: "600", fontFamily: "system-ui" },
+      });
+      label.anchor.set(0.5);
+      label.x = size.w / 2;
+      label.y = size.h / 2;
+      node.addChild(label);
+    }
 
     node.x = f.x;
     node.y = f.y;

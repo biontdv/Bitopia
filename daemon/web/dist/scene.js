@@ -6,6 +6,7 @@
 //
 // The scene reads the store every frame and owns only cosmetic animation state;
 // it never changes lifecycle state or sends commands.
+import { drawPixelArt, hasPixelArt } from "./pixelArt.js";
 // A friendly, approachable palette (the user asked for a friendly look).
 const COLORS = {
     floor: "#fdf6ec",
@@ -242,11 +243,17 @@ export class Scene {
     }
     drawFurniture(f) {
         const ctx = this.ctx;
-        const color = COLORS[f.type] || COLORS.generic;
         const size = furnitureSize(f.type);
         ctx.save();
         ctx.translate(f.x, f.y);
         ctx.rotate(((f.rotation || 0) * Math.PI) / 180);
+        // `sofa` and `desk` use programmatic pixel-art sprites (Opsi A); every
+        // other furniture type keeps its plain rounded-rect + icon look.
+        if (hasPixelArt(f.type) && drawPixelArt(ctx, f.type, size.w, size.h)) {
+            ctx.restore();
+            return;
+        }
+        const color = COLORS[f.type] || COLORS.generic;
         ctx.fillStyle = color;
         roundRect(ctx, 0, 0, size.w, size.h, 10);
         ctx.fill();

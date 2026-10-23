@@ -9,6 +9,7 @@
 
 import type { Store, AgentView, StoreState } from "./store.js";
 import type { Furniture, Office } from "./protocol.js";
+import { drawPixelArt, hasPixelArt } from "./pixelArt.js";
 
 // A friendly, approachable palette (the user asked for a friendly look).
 const COLORS = {
@@ -269,11 +270,17 @@ export class Scene {
 
   private drawFurniture(f: Furniture): void {
     const ctx = this.ctx;
-    const color = COLORS[f.type as keyof typeof COLORS] || COLORS.generic;
     const size = furnitureSize(f.type);
     ctx.save();
     ctx.translate(f.x, f.y);
     ctx.rotate(((f.rotation || 0) * Math.PI) / 180);
+    // `sofa` and `desk` use programmatic pixel-art sprites (Opsi A); every
+    // other furniture type keeps its plain rounded-rect + icon look.
+    if (hasPixelArt(f.type) && drawPixelArt(ctx, f.type, size.w, size.h)) {
+      ctx.restore();
+      return;
+    }
+    const color = COLORS[f.type as keyof typeof COLORS] || COLORS.generic;
     ctx.fillStyle = color;
     roundRect(ctx, 0, 0, size.w, size.h, 10);
     ctx.fill();
